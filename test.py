@@ -35,8 +35,8 @@ async def run_server(server):
 async def run_tasks():
 
     loop = asyncio.get_event_loop()
-    api_server = to_server(API_PORT, 'api', 'pokedoku')
-    client_server = to_server(CLIENT_PORT, 'client', 'pokedoku')
+    api_server = to_server(API_PORT, 'api', 'pd')
+    client_server = to_server(CLIENT_PORT, 'client', 'pd')
     api_task = asyncio.ensure_future(run_server(api_server))
     client_task = asyncio.ensure_future(run_server(client_server))
 
