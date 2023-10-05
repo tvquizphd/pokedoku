@@ -4,7 +4,7 @@ import { phaseMap, isPhase, nPhases } from 'phases';
 import { reactive } from '@arrow-js/core';
 import { toBackdrop } from 'backdrop';
 import { toActions } from 'actions';
-import { toEventForm } from 'form';
+import { toPokemonGrid } from 'grid';
 import { toNav } from 'nav';
 import { toTag } from 'tag';
 
@@ -30,12 +30,12 @@ const main = () => {
   // Date at the top
   const nav = toNav(data, actions);
   // Demo Form
-  const eventForm = toEventForm(data, globalCSS);
+  const pokemonGrid = toPokemonGrid(data, globalCSS);
   // Animated Background
   const backdrop = toBackdrop(data);
   // Containers
   const root = toTag('div')`
-    ${nav}${eventForm}
+    ${nav}${pokemonGrid}
   `({
     class: 'centered root index'
   });

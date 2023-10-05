@@ -1,4 +1,4 @@
-import eventFormCSS from 'form-css' assert { type: 'css' };
+import pokemonGridCSS from 'grid-css' assert { type: 'css' };
 import { toTag, CustomTag } from 'tag';
 import { phases, phaseMap, isPhase } from 'phases';
 
@@ -21,9 +21,9 @@ const toInfo = (what, phase) => {
   return toTag('div')`${info_text}`();
 }
 
-const toEventForm = (data, globalCSS) => {
+const toPokemonGrid = (data, globalCSS) => {
 
-  class EventForm extends CustomTag {
+  class PokemonGrid extends CustomTag {
 
     static get setup() {
       return { };
@@ -37,18 +37,18 @@ const toEventForm = (data, globalCSS) => {
         }}`();
       }
       return toTag('form')`${info}`({
-        class: 'event-form centered'
+        class: 'pokemon-grid centered'
       });
     }
 
     get styles() {
-      return [globalCSS, eventFormCSS];
+      return [globalCSS, pokemonGridCSS];
     }
   }
 
-  return toTag('event-form', EventForm)``({
+  return toTag('pokemon-grid', PokemonGrid)``({
     class: 'grid-row2'
   });
 }
 
-export { toEventForm };
+export { toPokemonGrid };

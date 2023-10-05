@@ -1,4 +1,4 @@
-.event-form {
+.pokemon-grid {
   grid-auto-rows: auto;
   grid-template-columns: 1fr;
   gap: var(--the-big-padding);
