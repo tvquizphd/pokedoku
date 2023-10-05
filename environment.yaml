@@ -1,0 +1,10 @@
+name: pokedoku
+channels:
+    - conda-forge
+dependencies:
+    - python=3.11
+    - fastapi=0.95.0
+    - uvicorn=0.22.0
+    - pydantic=1
+    - python-dotenv=1
+    - pydantic-settings=2

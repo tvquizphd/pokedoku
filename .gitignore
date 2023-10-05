@@ -1,0 +1,4 @@
+env.json
+api/state/*.json
+mockup/state/*.json
+__pycache__/
