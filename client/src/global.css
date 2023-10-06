@@ -18,8 +18,8 @@
   --white-background: rgba(255,225,245,0.3);
   --main-background: rgba(220,180,220,0.15);
   --major-background: rgba(143, 83, 94, 0.15);
-  --error-background: rgba(83, 143, 94, 0.3);
-  --chosen-background: rgba(255, 48, 148, 0.3);
+  --error-background: rgba(160, 120, 94, 0.3);
+  --chosen-background: rgba(200, 220, 255, 0.3);
   --the-font-family: Optima, Candara, sans-serif;
   --thin-font-family: "TruculentaThin", Helvetica, sans-serif;
   --thick-font-family: "TruculentaThick", Helvetica, sans-serif;
@@ -32,8 +32,8 @@
                      inset 0px -2px 4px rgba(180, 60, 20, 1.0);
   --chosen-box-shadow: 0px 0px 3px 1px rgba(80, 50, 10, 0.25),
                      -2px 4px 4px 0px rgba(80, 50, 10, 0.25),
-                     inset 0px 2px 12px rgba(255, 48, 180, 1.0),
-                     inset 0px -2px 8px rgba(255, 48, 120, 1.0);
+                     inset 0px 2px 12px rgba(200, 100, 240, 1.0),
+                     inset 0px -2px 8px rgba(180, 80, 200, 1.0);
   --main-text-shadow: rgba(255, 200, 255, 0.75) 0 0 8px;
   --error-text-shadow: rgba(128, 60, 10, 0.75) 0 0 8px;
   --the-heading-margin: 0.5em 0;
@@ -88,5 +88,5 @@ button {
   gap: var(--the-padding);
   margin: 0rem 0.5rem 1rem 0.5rem;
   grid-template-rows: auto auto 1fr;
-  grid-template-columns: minmax(75vw, 800px);
+  grid-template-columns: minmax(400px, 75vh);
 }

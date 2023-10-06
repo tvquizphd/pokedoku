@@ -24,7 +24,7 @@ const toBackdrop = (data) => {
         updateUniforms(this.gl, this.uniforms, this.data);
         this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
         this.draw();
-      }, 40);
+      }, 1000/5);
     }
 
     connected() {

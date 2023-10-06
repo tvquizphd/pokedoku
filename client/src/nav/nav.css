@@ -4,9 +4,11 @@
 }
 
 .nav.grid-row3 {
+  padding: var(--the-padding);
   grid-template-columns: 1fr 1fr;
 }
 .nav.grid-row1 {
+  padding: var(--the-padding);
   grid-template-columns: 1fr 2fr 1fr;
   & > div {
     font-size: 150%;

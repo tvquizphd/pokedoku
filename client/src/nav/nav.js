@@ -32,9 +32,10 @@ const toNav = (data, actions) => {
       const back = () => {
         const first = () => isFirstPhase(data.phase);
         const text = `${['← Back', '0/9'][+first()]}`;
-        return toTag('div')`${text}`({
+        return toTag('div')`${data.err ? 'ERR' : text}`({
           data: data,
           '@click': () => {
+            data.err = 1
             if (first()) return;
             // Three atempts at skipping phases
             data.phase = [...'...'].reduce(n => {
@@ -69,7 +70,7 @@ const toNav = (data, actions) => {
       const sheet = new CSSStyleSheet();
       const last = isLastPhase(data.phase);
       sheet.replaceSync(`
-      .nav > div.status {
+      .nav {
         background-color: var(${background});
         text-shadow: var(${text_shadow});
         box-shadow: var(${shadow});

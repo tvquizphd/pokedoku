@@ -12,20 +12,23 @@ const phase_list = [...Array(nPhases).keys()];
 
 const main = () => {
   
-  const no_pokemon = [
+  const no_pokemon = JSON.stringify([
     0,1,2,3,4,5,6,7,8
   ].map(() => {
-    return {
-      name: 'Pikachu',
-      dex: 25
-    }
-  });
+    return null; 
+  }));
 
   const data = reactive({
     phaseMap,
     content: '',
     phase: 0, err: 0,
     pokemon: no_pokemon,
+    selectPokemon: (mons, new_mon, i) => {
+      return mons.map((mon, j) => {
+        if (i != j) return mon;
+        return new_mon;
+      });
+    },
     width: window.innerWidth,
     height: window.innerHeight,
     api_root: 'http://localhost:8000',
@@ -51,7 +54,7 @@ const main = () => {
     class: 'centered root index'
   });
   return toTag('div')`${backdrop}${root}`({
-    class: 'centered root wrapper'
+    class: 'centered root wrapper',
   })(document.body);
 }
 
