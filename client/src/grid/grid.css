@@ -1,49 +1,35 @@
 .pokemon-grid {
-  grid-auto-rows: auto;
-  grid-template-columns: 1fr;
-  gap: var(--the-big-padding);
+  grid-template-columns: 25vw 25vw 25vw;
+  grid-template-rows: 25vw 25vw 25vw;
+  gap: var(--the-padding);
   color: var(--main-text-color);
-  padding: var(--the-big-padding);
+  padding: var(--the-padding);
   backdrop-filter: var(--the-blur);
   box-shadow: var(--the-box-shadow);
+  font-family: var(--thick-font-family);
   border-radius: var(--the-border-radius);
   background-color: var(--main-background);
 
   & > div {
-    font-size: 180%;
-    font-family: var(--the-font-family);
-    & > div {
-      display: grid;
-      gap: var(--the-padding);
-      & > div {
-      font-size: 90%;
-      display: grid;
-      gap: var(--the-padding);
-        & > strong {
-          font-family: var(--thick-font-family);
-        }
-      }
-      & > strong {
-        font-family: var(--thick-font-family);
-      }
+    display: grid;
+    border: 1px dashed #393939;
+    padding: 3px var(--the-padding); 
+    grid-template-rows: 1em 1fr 1.5em;
+    grid-template-columns: auto 1fr auto;
+
+    & > .full {
+      grid-column: 1 / 4;
+      text-align: center;
+      font-size: 125%;
     }
-    & > div.options {
-      & > div {
-        display: grid;
-        gap: var(--the-padding);
-        grid-template-columns: repeat(auto-fit, minmax(10em, 1fr));
-        & > div {
-          cursor: pointer;
-          text-align: center;
-          padding: var(--the-padding);
-          backdrop-filter: var(--the-blur);
-          border-radius: var(--the-border-radius);
-          background-color: var(--white-background);
-          text-shadow: var(--main-text-shadow);
-          box-shadow: var(--the-box-shadow);
-          color: var(--main-text-color);
-        }
-      }
+
+    & > .right {
+      grid-column: 3 / 4;
+    }
+
+    & > img {
+      justify-self: center;
+      width: calc(100% - 2em);
     }
   }
 }

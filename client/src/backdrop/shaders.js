@@ -100,14 +100,14 @@ vec3 lch2rgb(float L, float C, float hue) {
 
 vec3 lch_basic(float l, float h) {
   float L = linear(vec2(.4, .65), l);
-  float hue = linear(vec2(2.2, 2.9), h);
+  float hue = linear(vec2(4.5, 5.0), h);
   return lch2rgb(L, 0.22, hue);
 }
 
 vec3 lch_leaf(float l, float c, float h) {
   float L = linear(vec2(.4, .7), l);
-  float C = linear(vec2(.25, .3), c);
-  float hue = linear(vec2(2.5, 3.0), h);
+  float C = linear(vec2(.25, .45), c);
+  float hue = linear(vec2(4.0, 6.0), h);
   return lch2rgb(L, C, hue);
 }
 
@@ -124,11 +124,7 @@ vec2 center_rectilinear(ivec2 shape, vec2 p) {
 }
 
 float leaf_top(float x) {
-  return ((3. - 3.*x) * sin(2. - 2.*x) + 1.)/4.;
-}
-
-float leaf_bottom(float x) {
-  return ((3.*x - 3.) * cos(2. - 2.*x) + 4.5*x - 3.5)/4.;
+  return ((1. - 9.*x) * sin(2. - 9.*x) + 1.)/9.;
 }
 
 vec2 translate(vec2 p, float dx, float dy) {
@@ -150,8 +146,8 @@ vec3 wave(vec2 c, float dt) {
   float wv = (
     amp * sin(k*uv.x + speed*dt)
   );
-  float added_white = 1. - 4.*pow(uv.y - .25, 2.);
-  vec3 green_background = vec3(210, 240, 190)/255.;
+  float added_white = 1. - 2.*pow(uv.y - .5, 2.);
+  vec3 purple_background = vec3(220, 160, 220)/255.;
   // Reference the corners
   vec2 max = max_rectilinear(u_shape);
   // Move and draw the leaf
@@ -160,13 +156,13 @@ vec3 wave(vec2 c, float dt) {
   vec2 o = translate(c, dx, dy);
   float ox = linear(vec2(-1./scale.x, 1./scale.x), o.x);
   float oy = linear(vec2(1./scale.y, -1./scale.y), o.y);
-  float top = leaf_top(ox);
-  float bottom = leaf_bottom(ox);
-  if (top - oy > 0.05 && oy - bottom > 0.05) {
-    return lch_leaf(wv + uv.y, 1. - wv - uv.y, 1. - wv - uv.y);
-  }
   vec3 rain = lch_basic(wv + uv.y, wv + uv.y);
-  return mix(rain, green_background, added_white);
+  float top = leaf_top(ox);
+  if (top - oy > 0.05) {
+    vec3 leaf = lch_leaf(wv + uv.y, wv + uv.y, wv + uv.y);
+    return mix(leaf, purple_background, added_white - 0.1);
+  }
+  return mix(rain, purple_background, added_white);
 }
 
 void main() {

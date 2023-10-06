@@ -11,10 +11,21 @@ import { toTag } from 'tag';
 const phase_list = [...Array(nPhases).keys()];
 
 const main = () => {
+  
+  const no_pokemon = [
+    0,1,2,3,4,5,6,7,8
+  ].map(() => {
+    return {
+      name: 'Pikachu',
+      dex: 25
+    }
+  });
+
   const data = reactive({
     phaseMap,
     content: '',
     phase: 0, err: 0,
+    pokemon: no_pokemon,
     width: window.innerWidth,
     height: window.innerHeight,
     api_root: 'http://localhost:8000',

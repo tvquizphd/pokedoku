@@ -2,23 +2,23 @@ import pokemonGridCSS from 'grid-css' assert { type: 'css' };
 import { toTag, CustomTag } from 'tag';
 import { phases, phaseMap, isPhase } from 'phases';
 
-const infos = {
-  'play': () => `
-    Welcome to Pokedoku
-  `,
-  'review': what => `Played ${what}?`
-};
+const toPokemonSprite = (mon, phase) => {
+  return toTag('img')``({
+    class: 'full',
+    'src': 'https://pokedoku.com/unknown.png'
+  });
+}
 
-const toInfo = (what, phase) => {
-  const info_text = infos[phases[phase]](what);
-  const results = [
-    toTag('div')`<strong>Chosen Pokemon</strong>`()
-  ]
+const displayPokemon = (mon, phase) => {
+
   if (isPhase(phase, 'review')) {
-    const list = toTag('div')`${results}`();
-    return toTag('div')`${info_text} ${list}`();
+    return toTag('div')`Done`();
   }
-  return toTag('div')`${info_text}`();
+
+  return toPokemonSprite(
+    mon, phase
+  );
+//  return toTag('div')`${() => mon.name}`();
 }
 
 const toPokemonGrid = (data, globalCSS) => {
@@ -30,13 +30,17 @@ const toPokemonGrid = (data, globalCSS) => {
     }
 
     get root() {
-      const info = () => {
-        const what = "Pokedoku"
-        return toTag('div')`${() => {
-          return toInfo(what, data.phase);
-        }}`();
-      }
-      return toTag('form')`${info}`({
+      const squares = data.pokemon.map((mon) => () => {
+        return toTag('div')`
+        <div class='right'>69%</div>
+        ${displayPokemon(
+          mon, data.phase
+        )}
+        <div class='full'>${() => mon.name}</div>
+        `();
+      });
+
+      return toTag('div')`${squares}`({
         class: 'pokemon-grid centered'
       });
     }
