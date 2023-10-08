@@ -1,1 +1,1 @@
-from .basic_page import HasBasicPage
+from .pokemon import HasPokemon

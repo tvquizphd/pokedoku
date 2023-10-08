@@ -5,7 +5,7 @@ import { nextPhase, isLastPhase } from 'phases';
 import { phaseMap } from 'phases';
 import { toTag, CustomTag } from 'tag';
 
-const toNav = (data, actions) => {
+const toNav = (data) => {
 
   const colors = [
     [

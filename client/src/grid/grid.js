@@ -73,7 +73,7 @@ const toPokemonGrid = (data, globalCSS) => {
     }
 
     get root() {
-      const mons = this.data.pokemon.map((_, i) => {
+      const mons = [0,1,2,3,4,5,6,7,8].map((i) => {
         return () => this.data.pokemon[i];
       });
       const squares = mons.map((to_mon, i) => () => {
@@ -99,7 +99,7 @@ const toPokemonGrid = (data, globalCSS) => {
             const mons = this.data.pokemon;
             const new_mon = no_mon() ? {
               name: 'Pikachu',
-              probability: 69,
+              probability: 0,
               dex: 25
             } : null;
             const new_mons = data.selectPokemon(mons, new_mon, i);

@@ -19,7 +19,9 @@ class Ports(BaseModel):
     api: int
 
 class Config(BaseSettings):
+    api_url: str
     ports: Ports
+    ndex: int
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

@@ -1,5 +1,8 @@
+from pypokedex.exceptions import PyPokedexHTTPError
 from argparse import ArgumentParser
 from util import set_config
+import pypokedex as dex
+import pokebase as pb
 import asyncio
 import uvicorn
 import signal
@@ -55,10 +58,22 @@ async def run_tasks():
 
 if __name__ == "__main__":
 
+
+    N_DEX = pb.APIResourceList('pokemon-species').count
+    print('Updating Pokedex...', flush=True, file=sys.stderr)
+    while True:
+        N_DEX += 1
+        try:
+            dex.get(dex=(N_DEX))
+        except PyPokedexHTTPError:
+            break
+
     args = parser.parse_args()
     # Configure API
     set_config(**{
-        **vars(args), "ports": PORTS
+        **vars(args), 'ports': PORTS,
+        'api_url': 'https://pokeapi.co/api/v2/',
+        'ndex': N_DEX,
     })
 
     # Test the API

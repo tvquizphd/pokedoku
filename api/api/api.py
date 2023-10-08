@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from fastapi.responses import JSONResponse
 from starlette.requests import Request
 from fastapi import Depends, FastAPI
-from util.models import HasBasicPage
+from util.models import HasPokemon
 from api.service import to_service
 from util import to_config
 import asyncio
@@ -40,21 +40,23 @@ def open_root_api(config=Depends(to_config)):
     return { **vars(config) }
 
 '''
-Basic Page
+Post selection, make guess
 '''
 
-@pd_api.post("/api/basic_pages", status_code=_201)
-async def create_basic_page(
-        e: HasBasicPage, config=Depends(to_config)
+@pd_api.post("/api/selection", status_code=_201)
+async def create_selection(
+        e: HasPokemon, config=Depends(to_config)
     ):
-    async def post_basic_page():
-        endpoint = 'pokemon'
-        data = json.loads(e.json())
-        await to_service(config).post_api(endpoint, data)
+    async def post_pokemon():
+        return None
+#        endpoint = 'pokemon'
+#        data = json.loads(e.json())
+#        await to_service(config).post_api(endpoint, data)
     # Submit request in parallel
-    pool.submit(asyncio.run, post_basic_page())
+    pool.submit(asyncio.run, post_pokemon())
 
-@pd_api.get("/api/basic_pages")
-def list_basic_pages(config=Depends(to_config)):
-    endpoint = 'pokemon'
-    return to_service(config).get_api(endpoint)
+@pd_api.get("/api/matches")
+def get_matches(
+        config=Depends(to_config), guess: str = ''
+    ):
+    return to_service(config).get_matches(guess)

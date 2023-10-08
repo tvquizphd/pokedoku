@@ -9,15 +9,16 @@
 }
 
 * {
-  --the-padding: 0.2rem;
+  --the-padding: 0.4rem;
   --the-big-padding: 1rem;
   --main-text-color: #003A0F;
   --dark-text-color: #00200F;
   --error-text-color: #3A2000;
   --gray-background: rgba(96,48,72,0.3);
-  --white-background: rgba(255,225,245,0.3);
+  --white-background: rgba(255,225,245,0.5);
+  --modal-background: rgba(220,180,240,0.85);
   --main-background: rgba(220,180,220,0.15);
-  --major-background: rgba(143, 83, 94, 0.15);
+  --major-background: rgba(143, 83, 200, 0.3);
   --error-background: rgba(160, 120, 94, 0.3);
   --chosen-background: rgba(200, 220, 255, 0.3);
   --the-font-family: Optima, Candara, sans-serif;
@@ -47,15 +48,18 @@ button {
   cursor: pointer;
 }
 
-.grid-row2 {
+.grid-row3 {
+  grid-column: 1;
   grid-row: 3;
 }
 
 .grid-row2 {
+  grid-column: 1;
   grid-row: 2;
 }
 
 .grid-row1 {
+  grid-column: 1;
   grid-row: 1;
 }
 
@@ -84,9 +88,19 @@ button {
 .centered.root.index {
   height: 100%;
   grid-column: 2;
+  grid-row: 1 / 4;
   align-content: start;
   gap: var(--the-padding);
   margin: 0rem 0.5rem 1rem 0.5rem;
   grid-template-rows: auto auto 1fr;
   grid-template-columns: minmax(400px, 75vh);
+}
+
+.shown.modal {
+  display: grid;
+  grid-row: 1 / 4;
+  grid-column: 1 / 3;
+}
+.hidden.modal {
+  display: none;
 }
