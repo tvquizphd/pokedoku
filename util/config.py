@@ -1,7 +1,7 @@
 from pydantic import BaseSettings
 from pydantic import BaseModel
 from functools import lru_cache
-from typing import Dict, List
+from typing import Dict 
 import json
 
 CONFIG = 'env.json'
@@ -28,13 +28,9 @@ class Game(BaseModel):
 
 class Config(BaseSettings):
     dex_dict: Dict[int, str]
-    gen_dict: Dict[int, List[Game]]
-    three_grams: Dict[str, List[int]]
-    two_grams: Dict[str, List[int]]
-    one_grams: Dict[str, List[int]]
+    game_dict: Dict[int, Game]
     api_url: str
     ports: Ports
-    ndex: int
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

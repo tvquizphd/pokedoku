@@ -1,5 +1,5 @@
 from pypokedex.exceptions import PyPokedexHTTPError
-from util import set_config, to_config
+from util import set_config 
 from argparse import ArgumentParser
 from api.service import Service 
 import pypokedex as dex
@@ -1073,23 +1073,6 @@ DEX_DICT = {
     1017: 'ogerpon'
 }
 
-def to_ngrams(dex_dict):
-    three_grams = dict()
-    for dexn,name in dex_dict.items():
-        dex_list = three_grams.get(name[:3], [])
-        three_grams[name[:3]] = dex_list + [dexn]
-
-    two_grams = dict()
-    one_grams = dict()
-    for k, v in three_grams.items():
-        two_list = two_grams.get(k[:2], [])
-        one_list = one_grams.get(k[:1], [])
-        two_grams[k[:2]] = two_list + v
-        one_grams[k[:1]] = one_list + v
-
-    return (three_grams, two_grams, one_grams)
-
-
 def to_server(port, module, scope):
     config = uvicorn.Config(**{
         "port": port,
@@ -1128,34 +1111,27 @@ async def run_tasks():
 if __name__ == "__main__":
 
 
-    N_DEX = len(DEX_DICT) 
     print('Updating Pokémon...', flush=True, file=sys.stderr)
 
     while True:
         try:
-            dexn = N_DEX + 1
+            dexn = len(DEX_DICT) + 1
             pkmn = dex.get(dex=(dexn))
             print(f'New: Pokémon #{dexn} {pkmn.name}')
             DEX_DICT[dexn] = pkmn.name
         except PyPokedexHTTPError:
             break
-        N_DEX += 1
-
-    (three_grams, two_grams, one_grams) = to_ngrams(DEX_DICT)
 
     # No command line arguments
     args = parser.parse_args()
     api_url = 'https://pokeapi.co/api/v2/'
     print('Updating Games...', flush=True, file=sys.stderr)
     GAME_DICT = Service.update_games(api_url, GAME_DICT)
-    GEN_DICT = Service.parse_generations(GAME_DICT)
 
     # Configure API
     set_config(**{
         **vars(args), 'ports': PORTS, 'api_url': api_url,
-        'gen_dict': GEN_DICT, 'one_grams': one_grams,
-        'two_grams': two_grams, 'three_grams': three_grams,
-        'dex_dict': DEX_DICT, 'ndex': N_DEX,
+        'game_dict': GAME_DICT, 'dex_dict': DEX_DICT
     })
 
     # Test the API

@@ -113,6 +113,37 @@ def format_pkmn(p):
     }
     return { 'pokemon': pokemon }
 
+def to_ngrams(dex_dict):
+    three_grams = dict()
+    for dexn,name in dex_dict.items():
+        dex_list = three_grams.get(name[:3], [])
+        three_grams[name[:3]] = dex_list + [dexn]
+
+    two_grams = dict()
+    one_grams = dict()
+    for k, v in three_grams.items():
+        two_list = two_grams.get(k[:2], [])
+        one_list = one_grams.get(k[:1], [])
+        two_grams[k[:2]] = two_list + v
+        one_grams[k[:1]] = one_list + v
+
+    return (three_grams, two_grams, one_grams)
+
+def parse_generations(games):
+    gen_dict = dict()
+    all_gen_ids = set([
+       game.generation for game in games.values() 
+    ])
+    gen_dexes = {
+        gen: [
+            game for (gid, game) in games.items()
+            if gen == game.generation
+        ]
+        for gen in list(all_gen_ids)
+    }
+    return gen_dexes
+
+
 class RegionalDex():
 
     def __init__(self, gen_id, game, did, dex):
@@ -131,11 +162,20 @@ Dex {self.dex_id}: {self.dex}'''
 class Service():
     def __init__(self, config):
         self.config = config
+        (three_grams, two_grams, one_grams) = to_ngrams(
+            config.dex_dict
+        )
+        self.gen_dict = parse_generations(
+            config.game_dict
+        )
+        self.three_grams = three_grams
+        self.two_grams = two_grams
+        self.one_grams = one_grams
 
     @property
     def all_regions(self):
         all_region_names = list(set(
-            region for games in self.config.gen_dict.values()
+            region for games in self.gen_dict.values()
             for game in games
             for region in game.regions.values()
         ))
@@ -158,22 +198,6 @@ class Service():
         #session.post(target, json=data, headers=headers)
         pass
 
-    @staticmethod
-    def parse_generations(games):
-        gen_dict = dict()
-        all_gen_ids = set([
-           game["generation"] for game in games.values() 
-        ])
-        gen_dexes = {
-            gen: [
-                {'id': gid, **game}
-                for (gid, game) in games.items()
-                if gen == game["generation"]
-            ]
-            for gen in list(all_gen_ids)
-        }
-        return gen_dexes
-
     @staticmethod 
     def update_games(root, games):
         off = max(games.keys()) if len(games) else 0
@@ -195,7 +219,7 @@ class Service():
                 }
             }
             print('Adding', ver['name'])
-        return ver_dict
+        return { k: {"id": k, **v} for (k,v) in ver_dict.items() }
 
     def form_to_species(self, pkmn):
         root = self.config.api_url
@@ -205,7 +229,7 @@ class Service():
     def to_regional_dex_list(self, pkmn):
         species = self.form_to_species(pkmn)
         gen_id = id_from_url(species["generation"]["url"])
-        gen_list = self.config.gen_dict[gen_id]
+        gen_list = self.gen_dict[gen_id]
         dex_list = [
             RegionalDex(gen_id, game, did, dex)
             for game in gen_list
@@ -271,10 +295,11 @@ class Service():
 
         # Sample pokemon that meet threshhold
         while len(tried) < max_tries and len(out) < min_out:
-            three = self.config.three_grams.get(guess[:3], [])
-            two = self.config.two_grams.get(guess[:2], [])
-            one = self.config.one_grams.get(guess[:1], [])
-            dexn = random_dex(tried, three, two, one, self.config.ndex)
+            three = self.three_grams.get(guess[:3], [])
+            two = self.two_grams.get(guess[:2], [])
+            one = self.one_grams.get(guess[:1], [])
+            ndex = len(self.config.dex_dict)
+            dexn = random_dex(tried, three, two, one, ndex)
             # Search for pokemon if not tried
             if dexn in tried: continue
             root = self.config.api_url
@@ -300,7 +325,7 @@ class Service():
             tried.add(dexn)
 
         # Unfetched 2-grams (includes 3-grams)
-        two = self.config.two_grams.get(guess[:2], [])
+        two = self.two_grams.get(guess[:2], [])
         unfetched_2grams = list(set(two) - tried)
         
         # Return with less information
