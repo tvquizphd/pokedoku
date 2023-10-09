@@ -1,6 +1,7 @@
 from pydantic import BaseSettings
 from pydantic import BaseModel
 from functools import lru_cache
+from typing import Dict, List
 import json
 
 CONFIG = 'env.json'
@@ -19,6 +20,10 @@ class Ports(BaseModel):
     api: int
 
 class Config(BaseSettings):
+    dex_dict: Dict[int, str]
+    three_grams: Dict[str, List[int]]
+    two_grams: Dict[str, List[int]]
+    one_grams: Dict[str, List[int]]
     api_url: str
     ports: Ports
     ndex: int

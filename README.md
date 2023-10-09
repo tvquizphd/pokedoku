@@ -14,7 +14,6 @@ conda install pydantic=1
 conda install python-dotenv=1
 conda install pydantic-settings=2
 pip install pypokedex==1
-pip install pokebase==1
 ```
 
 ### Run demo

@@ -24,18 +24,17 @@ const toNav = (data) => {
 
     static get setup() {
       return {
-        text: '', err: data.err
+        tries: 0, text: '', err: data.err
       };
     }
 
     get root() {
       const back = () => {
         const first = () => isFirstPhase(data.phase);
-        const text = `${['← Back', '0/9'][+first()]}`;
-        return toTag('div')`${data.err ? 'ERR' : text}`({
+        const text = `${['← Back', data.tries+'/9'][+first()]}`;
+        return toTag('div')`${data.err ? 'Sorry!' : text}`({
           data: data,
           '@click': () => {
-            data.err = 1
             if (first()) return;
             // Three atempts at skipping phases
             data.phase = [...'...'].reduce(n => {
@@ -84,6 +83,7 @@ const toNav = (data) => {
   return toTag('nav', Nav)``({
     class: 'content',
     err: () => data.err,
+    tries: () => data.tries,
     text: () => {
       return [
         'Pokedoku',

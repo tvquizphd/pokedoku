@@ -11,6 +11,15 @@ const fetchWrapper = async (url, body, method) => {
   });
 }
 
+const getForms = async (root, guess) => {
+  const params = new URLSearchParams();
+  params.append('dexn', guess);
+  const url = `${root}/api/forms?${params.toString()}`;
+  const response = await fetchWrapper(url);
+  const out = (await response.json()) || [];
+  return out.map(v => v?.form).filter(v => v);
+}
+
 const getMatches = async (root, guess) => {
   const params = new URLSearchParams();
   params.append('guess', guess);
@@ -20,4 +29,14 @@ const getMatches = async (root, guess) => {
   return out.map(v => v?.pokemon).filter(v => v);
 }
 
-export { getMatches };
+const testGuess = async (root, identifier, conditions) => {
+  const params = new URLSearchParams();
+  params.append('identifier', identifier);
+  params.append('conditions', conditions.join(','));
+  const url = `${root}/api/test?${params.toString()}`;
+  const response = await fetchWrapper(url);
+  const out = (await response.json()) || {};
+  return out?.ok || false;
+}
+
+export { testGuess, getMatches, getForms };

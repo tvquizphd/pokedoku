@@ -55,8 +55,28 @@ async def create_selection(
     # Submit request in parallel
     pool.submit(asyncio.run, post_pokemon())
 
+@pd_api.get("/api/forms")
+def get_forms(
+        config=Depends(to_config), dexn: str = ''
+    ):
+    return to_service(config).get_forms(dexn)
+
 @pd_api.get("/api/matches")
 def get_matches(
         config=Depends(to_config), guess: str = ''
     ):
     return to_service(config).get_matches(guess)
+
+@pd_api.get("/api/test")
+def run_test(
+        config=Depends(to_config),
+        identifier: str = '',
+        conditions: str = ''
+    ):
+    # Comparison against conditions
+    str_cmp = lambda x, y: x.lower() == y.lower()
+    fns = [
+        (s, lambda x,arr: any([str_cmp(x,y) for y in arr]))
+        for s in conditions.split(',')
+    ]
+    return to_service(config).run_test(identifier, fns)

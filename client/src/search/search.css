@@ -4,9 +4,9 @@
   font-size: 150%;
   align-content: center;
   justify-content: center;
-  pointer-events: none;
+  pointer-events: all;
   grid-template-rows: 50%;
-  grid-template-columns: 50%;
+  grid-template-columns: 75%;
   box-shadow: var(--the-box-shadow);
   font-family: var(--thick-font-family);
   border-radius: var(--the-border-radius);
@@ -16,7 +16,7 @@
     display: grid;
     pointer-events: all;
     padding: var(--the-big-padding);
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto 1fr;
     box-shadow: var(--the-box-shadow);
     border-radius: var(--the-border-radius);
     background-color: var(--modal-background);
@@ -35,25 +35,30 @@
       padding: var(--the-big-padding);
       border-radius: var(--the-border-radius);
       background-color: var(--white-background);
+      justify-items: stretch;
+      align-items: stretch;
+      max-height: 10em;
       overflow: scroll;
 
       & > div {
         border-bottom: 2px solid white;
-      }
-    }
+        grid-template-columns: 64px 1fr auto;
+        grid-template-rows: 64px;
+        display: grid;
 
-    & > .actions {
-      display: grid;
-      grid-template-columns: auto 1fr auto;
+        & > img {
+          filter: var(--the-drop-shadow);
+          max-height: 64px;
+        }
 
-      & > .accept {
-        cursor: pointer;
-        grid-column: 3 / 4;
-        pointer-events: all;
-        padding: var(--the-padding) var(--the-big-padding);
-        box-shadow: var(--the-box-shadow);
-        border-radius: var(--the-border-radius);
-        background-color: var(--major-background);
+        & > div > .accept {
+          cursor: pointer;
+          pointer-events: all;
+          padding: var(--the-padding) var(--the-big-padding);
+          box-shadow: var(--the-box-shadow);
+          border-radius: var(--the-border-radius);
+          background-color: var(--major-background);
+        }
       }
     }
   }

@@ -24,6 +24,7 @@
   --the-font-family: Optima, Candara, sans-serif;
   --thin-font-family: "TruculentaThin", Helvetica, sans-serif;
   --thick-font-family: "TruculentaThick", Helvetica, sans-serif;
+  --the-drop-shadow: filter: drop-shadow(5px 5px 12px #82A);
   --the-box-shadow: 0px 0px 3px 1px rgba(0, 0, 0, 0.25),
                    -2px 4px 4px 0px rgba(0, 0, 0, 0.25),
                    inset 0px 0px 5px rgba(255, 200, 200, 0.25);

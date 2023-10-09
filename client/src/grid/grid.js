@@ -2,19 +2,14 @@ import pokemonGridCSS from 'grid-css' assert { type: 'css' };
 import { toTag, CustomTag } from 'tag';
 import { phases, phaseMap, isPhase } from 'phases';
 
-const toPokemonSprite = (no_mon, to_dex) => {
-  const to_png = () => {
-    const base = 'https://raw.githubusercontent.com/PokeAPI'
-    const prefix = `${base}/sprites/master/sprites/pokemon`
-    return `${prefix}/${to_dex()}.png`
-  }
+const toPokemonSprite = (no_mon, png_url) => {
   return toTag('img')``({
     class: () => {
       if (no_mon()) return 'full placeholder';
       return 'full';
     },
     src: () => {
-      return no_mon() ? '' : to_png();
+      return no_mon() ? '' : png_url();
     }
   });
 }
@@ -46,22 +41,6 @@ function* addHeaders (squares, cols, rows) {
   }
 }
 
-const types = [
-  'Normal', 'Fire', 'Water', 'Grass', 'Electric', 'Ice', 'Fighting', 'Poison', 'Ground', 'Flying', 'Psychic', 'Bug', 'Rock', 'Ghost', 'Dark', 'Dragon', 'Steel', 'Fairy'
-];
-
-// Function to choose random from array
-const randomTypes = () => {
-  return [1,2,3,4,5,6].reduce((output) => {
-    let out = undefined
-    // Random unique type not in output
-    while (!out || output.includes(out)) {
-      out = types[Math.floor(Math.random() * types.length)];
-    }
-    return [...output, out];
-  }, []);
-}
-
 const toPokemonGrid = (data, globalCSS) => {
 
   class PokemonGrid extends CustomTag {
@@ -78,10 +57,11 @@ const toPokemonGrid = (data, globalCSS) => {
       });
       const squares = mons.map((to_mon, i) => () => {
         const no_mon = () => to_mon() == null;
-        const to_dex = () => to_mon()?.dex;
+        const to_id = () => to_mon()?.id;
         const to_name = () => to_mon()?.name;
-        const to_prob = () => to_mon()?.probability;
-        const pokemon = toPokemonSprite(no_mon, to_dex);
+        const to_prob = () => to_mon()?.percentage;
+        const png_url = () => data.toFormPngUrl(to_id())
+        const pokemon = toPokemonSprite(no_mon, png_url);
         const prob = toTag('div')`${
           () => no_mon()? '' : to_prob()+'%'
         }`({
@@ -96,21 +76,15 @@ const toPokemonGrid = (data, globalCSS) => {
           ${pokemon}${prob}${name}
         `({
           '@click': () => {
-            const mons = this.data.pokemon;
-            const new_mon = no_mon() ? {
-              name: 'Pikachu',
-              probability: 0,
-              dex: 25
-            } : null;
-            const new_mons = data.selectPokemon(mons, new_mon, i);
-            data.pokemon = JSON.stringify(new_mons);
+            data.active_square = i;
+            if (data.modal == null) {
+              data.modal = 'search';
+            }
           }
         });
       });
 
-      const rand = randomTypes();
-      const cols = [0,1,2].map(i => rand[i]);
-      const rows = [3,4,5].map(i => rand[i]);
+      const { cols, rows } = data;
       const items = [...addHeaders(squares, cols, rows)];
 
       return toTag('div')`${items}`({
