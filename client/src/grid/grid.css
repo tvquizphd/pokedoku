@@ -28,7 +28,7 @@
       background-color: lab(65 -10 55 / .75);
     }
     & > div.Grass {
-      background-color: lab(55 -10 40 / .75);
+      background-color: lab(65 -20 80 / .75);
     }
     & > div.Fairy {
       background-color: lab(70 40 -30 / .75);
@@ -70,7 +70,7 @@
       background-color: lab(30 5 0 / .75);
     }
     & > div.Water {
-      background-color: lab(60 -10 -45 / .75);
+      background-color: lab(60 -16 -72 / .75);
     }
     & > div.Fighting {
       background-color: lab(70 30 60 / .75);

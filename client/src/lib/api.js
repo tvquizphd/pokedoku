@@ -11,6 +11,13 @@ const fetchWrapper = async (url, body, method) => {
   });
 }
 
+const getRegions = async (root, guess) => {
+  const url = `${root}/api/regions`;
+  const response = await fetchWrapper(url);
+  const out = (await response.json()) || [];
+  return out.map(v => v?.region).filter(v => v);
+}
+
 const getForms = async (root, guess) => {
   const params = new URLSearchParams();
   params.append('dexn', guess);
@@ -39,4 +46,4 @@ const testGuess = async (root, identifier, conditions) => {
   return out?.ok || false;
 }
 
-export { testGuess, getMatches, getForms };
+export { testGuess, getMatches, getForms, getRegions };

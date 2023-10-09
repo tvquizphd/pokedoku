@@ -5,6 +5,32 @@ import random
 import json
 import time
 
+def get_api(root, endpoint, unsure=False):
+    headers = {'content-type': 'application/json'}
+    try:
+        r = requests.get(root + endpoint, headers=headers)
+        return r.json() 
+    except Exception as e:
+        if not unsure:
+            logging.critical(e, exc_info=True)
+        return None
+
+def get_pages(root, endpoint, offset=None):
+    off = f"&offset={offset}" if offset else ""
+    page_list = get_api(root, f'/{endpoint}/?limit=1000{off}')
+    while page_list["next"] is not None:
+        next_list = get_api(
+            root, f'/{endpoint}/?{urlparse(page_list["next"]).query}'
+        )
+        page_list["results"].append(next_list["results"])
+        page_list["next"] = next_list["next"]
+
+    return page_list
+
+def id_from_url(url):
+    split_url = urlparse(url).path.split('/')
+    return int([s for s in split_url if s][-1])
+
 def random_dex(tried, three, two, one, ndex):
     new_3grams = list(set(three) - tried)
     new_2grams = list(set(two) - tried)
@@ -70,8 +96,7 @@ def str_dist(guess, target):
     return found 
 
 def format_form(v):
-    split_url = urlparse(v['url']).path.split('/')
-    pid = [s for s in split_url if s][-1]
+    pid = id_from_url(v['url'])
     form = {
         'name': v['name'], 'id': pid,
         'percentage': 42,
@@ -88,10 +113,33 @@ def format_pkmn(p):
     }
     return { 'pokemon': pokemon }
 
+class RegionalDex():
+
+    def __init__(self, gen_id, game, did, dex):
+        self.generation = gen_id;
+        self.game = game.name;
+        self.game_id = game.id;
+        self.dex_id = did;
+        self.dex = dex
+
+    def __repr__(self):
+        return f'''\
+Generation {self.generation}; \
+Game {self.game_id}: {self.game}; \
+Dex {self.dex_id}: {self.dex}'''
 
 class Service():
     def __init__(self, config):
         self.config = config
+
+    @property
+    def all_regions(self):
+        all_region_names = list(set(
+            region for games in self.config.gen_dict.values()
+            for game in games
+            for region in game.regions.values()
+        ))
+        return [{'region': r} for r in all_region_names]
 
     async def delete_api(self, endpoint):
         #target = self.config.api_url + endpoint
@@ -110,25 +158,99 @@ class Service():
         #session.post(target, json=data, headers=headers)
         pass
 
-    def get_api(self, endpoint, unsure=False):
-        target = self.config.api_url + endpoint
-        headers = {'content-type': 'application/json'}
-        try:
-            r = requests.get(target, headers=headers)
-            return r.json() 
-        except Exception as e:
-            if not unsure:
-                logging.critical(e, exc_info=True)
-            return None
+    @staticmethod
+    def parse_generations(games):
+        gen_dict = dict()
+        all_gen_ids = set([
+           game["generation"] for game in games.values() 
+        ])
+        gen_dexes = {
+            gen: [
+                {'id': gid, **game}
+                for (gid, game) in games.items()
+                if gen == game["generation"]
+            ]
+            for gen in list(all_gen_ids)
+        }
+        return gen_dexes
+
+    @staticmethod 
+    def update_games(root, games):
+        off = max(games.keys()) if len(games) else 0
+        ver_list = get_pages(root, 'version-group', off)
+        ver_dict = { **games }
+        for ver_info in ver_list["results"]:
+            ver_id = id_from_url(ver_info['url'])
+            ver = get_api(root, f'/version-group/{ver_id}')
+            ver_dict[ver_id] = {
+                "name": ver["name"],
+                "generation": id_from_url(ver["generation"]["url"]),
+                "dexes": {
+                    id_from_url(dex["url"]): dex["name"]
+                    for dex in ver["pokedexes"]
+                },
+                "regions": {
+                    id_from_url(region["url"]): region["name"]
+                    for region in ver["regions"]
+                }
+            }
+            print('Adding', ver['name'])
+        return ver_dict
+
+    def form_to_species(self, pkmn):
+        root = self.config.api_url
+        species_id = id_from_url(pkmn["species"]["url"])
+        return get_api(root, f'pokemon-species/{species_id}/')
+
+    def to_regional_dex_list(self, pkmn):
+        species = self.form_to_species(pkmn)
+        gen_id = id_from_url(species["generation"]["url"])
+        gen_list = self.config.gen_dict[gen_id]
+        dex_list = [
+            RegionalDex(gen_id, game, did, dex)
+            for game in gen_list
+            for (did, dex) in game.dexes.items()
+        ]
+        sid = species["id"]
+        return (sid, sorted(dex_list, key=lambda d: d.game_id))
+
+    def to_first_region(self, pkmn, sid, dex_list):
+        all_regions = set([r['region'] for r in self.all_regions])
+        split_name = set(pkmn['name'].split('-'))
+        pkmn_name_regions = split_name & all_regions
+        # Use any region found in name
+        if len(pkmn_name_regions):
+            return pkmn_name_regions.pop()
+        # Search pokedex if no region in name
+        root = self.config.api_url
+        for regional_dex in dex_list:
+            did = regional_dex.dex_id
+            dex = get_api(root, f'pokedex/{did}/')
+            dex_species = [
+                id_from_url(d['pokemon_species']['url'])
+                for d in dex['pokemon_entries']
+            ]
+            if sid in dex_species:
+                return dex['region']['name']
 
     def run_test(self, identifier, fns):
-        pkmn = self.get_api(f'pokemon/{identifier}/', True)
-        types = [t['type']['name'] for t in pkmn.get('types', [])]
+        root = self.config.api_url
+        pkmn = get_api(root, f'pokemon/{identifier}/')
+        # Find all dexes for all games in generation
+        (sid, dex_list) = self.to_regional_dex_list(pkmn)
+        # Find first region that contains pokemon
+        first_region = self.to_first_region(pkmn, sid, dex_list)
+        
         # All conditions met within all types
-        return { 'ok': all([fn(s,types) for (s,fn) in fns]) }
+        pkmn_types = pkmn.get('types', [])
+        types = [t['type']['name'] for t in pkmn_types]
+        valid = types + [first_region]
+        ok = all([fn(s,valid) for (s,fn) in fns])
+        return { 'ok': ok }
 
     def get_forms(self, dexn):
-        pkmn = self.get_api(f'pokemon-species/{dexn}/', True)
+        root = self.config.api_url
+        pkmn = get_api(root, f'pokemon-species/{dexn}/', True)
         varieties = [v['pokemon'] for v in pkmn.get('varieties', [])]
         return [format_form(v) for v in varieties]
 
@@ -155,7 +277,8 @@ class Service():
             dexn = random_dex(tried, three, two, one, self.config.ndex)
             # Search for pokemon if not tried
             if dexn in tried: continue
-            pkmn = self.get_api(f'pokemon-species/{dexn}/', True)
+            root = self.config.api_url
+            pkmn = get_api(root, f'pokemon-species/{dexn}/', True)
             if pkmn is None:
                 continue
             # Modify threshhold based on results

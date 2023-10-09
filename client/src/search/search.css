@@ -44,6 +44,7 @@
         border-bottom: 2px solid white;
         grid-template-columns: 64px 1fr auto;
         grid-template-rows: 64px;
+        align-items: center;
         display: grid;
 
         & > img {

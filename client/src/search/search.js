@@ -101,6 +101,7 @@ const toSearchModal = (data, actions) => {
           }
           update_matches();
         },
+        autofocus: "",
         class: 'search',
         type: 'text'
       })
@@ -114,7 +115,12 @@ const toSearchModal = (data, actions) => {
       });
       return toTag('div')`
         ${center}`({
-        class: 'wrapper',
+        class: () => {
+          if (data.modal == 'search') {
+            return 'shown modal wrapper';
+          }
+          return 'hidden modal wrapper';
+        },
         '@click': () => {
           data.closeModal();
         }
@@ -159,14 +165,9 @@ const toSearchModal = (data, actions) => {
   }
 
   return toTag('search', SearchModal)``({
-    class: () => {
-      if (data.modal == 'search') {
-        return 'shown modal';
-      }
-      return 'hidden modal';
-    },
     pokemon: () => data.pokemon,
     matches: () => data.matches,
+    class: 'shown modal',
     search: '',
   });
 

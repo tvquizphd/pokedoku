@@ -77,9 +77,13 @@ const toPokemonGrid = (data, globalCSS) => {
         `({
           '@click': () => {
             data.active_square = i;
-            if (data.modal == null) {
-              data.modal = 'search';
-            }
+            data.modal = 'search';
+            const search = document.querySelector('pokedoku-search').shadowRoot;
+            const input = search.querySelector('input[autofocus]');
+            // Prepare Autofocus
+            setTimeout(() => {
+              input.focus();
+            },10)
           }
         });
       });

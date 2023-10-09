@@ -40,20 +40,18 @@ def open_root_api(config=Depends(to_config)):
     return { **vars(config) }
 
 '''
-Post selection, make guess
+Constants
 '''
 
-@pd_api.post("/api/selection", status_code=_201)
-async def create_selection(
-        e: HasPokemon, config=Depends(to_config)
+@pd_api.get("/api/regions")
+def get_forms(
+        config=Depends(to_config)
     ):
-    async def post_pokemon():
-        return None
-#        endpoint = 'pokemon'
-#        data = json.loads(e.json())
-#        await to_service(config).post_api(endpoint, data)
-    # Submit request in parallel
-    pool.submit(asyncio.run, post_pokemon())
+    return to_service(config).all_regions
+
+'''
+Pokemon forms and search
+'''
 
 @pd_api.get("/api/forms")
 def get_forms(
@@ -66,6 +64,10 @@ def get_matches(
         config=Depends(to_config), guess: str = ''
     ):
     return to_service(config).get_matches(guess)
+
+'''
+Validate guess
+'''
 
 @pd_api.get("/api/test")
 def run_test(
