@@ -11,7 +11,7 @@ import signal
 import sys
 
 PORTS = {
-    "client": 8080,
+    "client": 80,
     "api": 8000
 }
 
