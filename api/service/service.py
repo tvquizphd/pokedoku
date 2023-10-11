@@ -31,23 +31,15 @@ def id_from_url(url):
     split_url = urlparse(url).path.split('/')
     return int([s for s in split_url if s][-1])
 
-def random_dex(tried, three, two, one, ndex):
-    new_3grams = list(set(three) - tried)
-    new_2grams = list(set(two) - tried)
-    new_1grams = list(set(one) - tried)
+def from_dex(favored, other):
     # Try matching dex numbers
-    if len(new_3grams):
-        return random.choice(new_3grams)
-    elif len(new_2grams):
-        return random.choice(new_2grams)
-    elif len(new_1grams):
-        return random.choice(new_1grams)
-
+    if len(favored):
+        return (favored[0], favored[1:], other, False)
     # Resort to random dex numbers
-    rand = random.randint(1, ndex + 1)
-    while rand in tried:
-        rand = random.randint(1, ndex + 1)
-    return rand
+    if len(other):
+        return (other[0], favored, other[1:], True)
+
+    return ['', [], [], True]
 
 def quality(n, count, offset):
     is_first = offset == 0
@@ -57,31 +49,25 @@ def quality(n, count, offset):
     return sum([p*v for p,v in ranking])
 
 # thresh based on tries and remaining
-def to_thresh(found_some, tried_some, at_start):
+def to_thresh(is_rand, at_start):
     if at_start: return 2
-    if not found_some and tried_some: return 2
-    if found_some and not tried_some: return 4
-    if found_some and tried_some: return 3
+    if is_rand: return 2
     return 3
 
 def close_enough(
-    guess, max_tries, min_out, n_tried, n_found, offset, n
+    guess, is_rand, offset, n
 ):
-    found_some = n_found > min_out/2
-    tried_some = n_tried > max_tries/2
     at_start = offset == 0
-    thresh = to_thresh(
-        found_some, tried_some, at_start
-    )
+    thresh = to_thresh( is_rand, at_start )
     matched = n >= min(len(guess), thresh)
     return (matched, thresh)
 
-def str_dist(guess, target):
+def str_dist(guess, index, target):
     def ngrams(s,n):
         for start in range(0, len(s) - n + 1):
             yield s[start:start+n]
 
-    found = (0, 0, 0)
+    found = (index, 0, 0, 0)
 
     for n in [2,3,4,5,6]:
         ngrams_guess = set(ngrams(guess, n))
@@ -91,7 +77,7 @@ def str_dist(guess, target):
         offset = min(
             target.index(chars) for chars in union
         )
-        found = (n, len(union), offset)
+        found = (index, n, len(union), offset)
 
     return found 
 
@@ -113,36 +99,6 @@ def format_pkmn(p):
     }
     return { 'pokemon': pokemon }
 
-def to_ngrams(dex_dict):
-    three_grams = dict()
-    for dexn,name in dex_dict.items():
-        dex_list = three_grams.get(name[:3], [])
-        three_grams[name[:3]] = dex_list + [dexn]
-
-    two_grams = dict()
-    one_grams = dict()
-    for k, v in three_grams.items():
-        two_list = two_grams.get(k[:2], [])
-        one_list = one_grams.get(k[:1], [])
-        two_grams[k[:2]] = two_list + v
-        one_grams[k[:1]] = one_list + v
-
-    return (three_grams, two_grams, one_grams)
-
-def parse_generations(games):
-    gen_dict = dict()
-    all_gen_ids = set([
-       game.generation for game in games.values() 
-    ])
-    gen_dexes = {
-        gen: [
-            game for (gid, game) in games.items()
-            if gen == game.generation
-        ]
-        for gen in list(all_gen_ids)
-    }
-    return gen_dexes
-
 
 class RegionalDex():
 
@@ -162,15 +118,9 @@ Dex {self.dex_id}: {self.dex}'''
 class Service():
     def __init__(self, config):
         self.config = config
-        (three_grams, two_grams, one_grams) = to_ngrams(
-            config.dex_dict
-        )
-        self.gen_dict = parse_generations(
-            config.game_dict
-        )
-        self.three_grams = three_grams
-        self.two_grams = two_grams
-        self.one_grams = one_grams
+        self.gen_dict = config.gen_dict
+        self.three_grams = config.three_grams
+        self.two_grams = config.two_grams
 
     @property
     def all_regions(self):
@@ -285,56 +235,67 @@ class Service():
         if len(guess) < 2:
             return []
 
-        out = []
-        tried = set()
+        two = self.two_grams.get(guess[:2], [])
+        three = self.three_grams.get(guess[:3], [])
+        two_names = [self.config.dex_dict[k] for k in two]
+        three_names = [self.config.dex_dict[k] for k in three]
 
+        # Compare all pokemon of same first two letters
+        comparisons = {
+            v: str_dist(guess, k, v) for (k,v) in zip(two, two_names)
+        }
+        # Sort these pokemon by match quality
+        favored = [k for (k,v) in sorted(
+            comparisons.items(), reverse=True,
+            key=lambda kv: quality(*kv[1][1:])
+        )]
+        # List of all other pokemon
+        ndex = len(self.config.dex_dict)
+        other = list(set(range(1, ndex + 1)) - set(two))
+        random.shuffle(other)
+        print(len(favored), f'{guess} favored in')
+
+        out = []
+        n_tried = 0
+        max_tries = max(1, min(4, len(guess)))
         log_tracking = (0, 0)
-        # Only try few mon
-        max_tries = 5
-        min_out = 3
 
         # Sample pokemon that meet threshhold
-        while len(tried) < max_tries and len(out) < min_out:
-            three = self.three_grams.get(guess[:3], [])
-            two = self.two_grams.get(guess[:2], [])
-            one = self.one_grams.get(guess[:1], [])
-            ndex = len(self.config.dex_dict)
-            dexn = random_dex(tried, three, two, one, ndex)
+        while n_tried < max_tries:
+            (dexn, favored, other, is_rand) = from_dex(favored, other)
             # Search for pokemon if not tried
-            if dexn in tried: continue
             root = self.config.api_url
             pkmn = get_api(root, f'pokemon-species/{dexn}/', True)
             if pkmn is None:
                 continue
-            # Modify threshhold based on results
-            (n, count, offset) = str_dist(guess, pkmn['name'])
-            # Measure similarity in pokemon names
+            n_tried += 1
+            # Measure similarity of pokemon names
+            compared = comparisons.get(pkmn['name'], None)
+            (n, count, offset) = compared[1:] if compared else (
+                str_dist(guess, dexn, pkmn['name'])[1:]
+            )
+            # Measure whether similar enough given conditions
             (matched, thresh) = close_enough(
-                guess, max_tries, min_out, len(tried), len(out), offset, n 
+                guess, is_rand, offset, n
             )
             # Logging
-            remaining = min_out - len(out)
-            next_tracking = (thresh, remaining)
+            next_tracking = (thresh, is_rand)
             if (next_tracking != log_tracking):
                 log_tracking = next_tracking
+                algo = 'random' if is_rand else 'top'
                 print(
-                    f'Seeking {thresh}-gram matches for {remaining} pkmn'
+                    f'Seeking {thresh}-gram matches for {algo} pkmn'
                 )
             if matched:
                 out.append((pkmn, n, count, offset))
-            tried.add(dexn)
 
-        # Unfetched 2-grams (includes 3-grams)
-        two = self.two_grams.get(guess[:2], [])
-        unfetched_2grams = list(set(two) - tried)
-        
-        # Return with less information
-        for dexn in unfetched_2grams:
-            name = self.config.dex_dict.get(dexn, None)
-            if name is None: continue
+        # Return all trigrams with less information
+        print(len([f for f in favored if f in three_names]), f'{guess} favored out')
+        for name in favored:
+            if name not in three: continue
+            (dexn, n, count, offset) = comparisons[name]
             pkmn = { 'name': name, 'id': dexn }
-            (n, count, offset) = str_dist(guess, pkmn['name'])
-            # Assume that unmatched 2-grams are close enough
+            # Assume close enough
             out.append((pkmn, n, count, offset))
 
         # Sort by match quality 
