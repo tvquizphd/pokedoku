@@ -14,7 +14,7 @@ const phase_list = [...Array(nPhases).keys()];
 // Choose 6 random types
 const randomConditions = async (api_root) => {
   const regions = await getRegions(api_root);
-  const last_used = localStorage['pokedoku-banned'] || "[]";
+  const last_used = localStorage['pokedoku-saved-conditions'] || "[]";
   const banned = [
     new Set(['Normal', 'Steel']),
     new Set(['Normal', 'Rock']),
@@ -65,38 +65,90 @@ const randomConditions = async (api_root) => {
   }, []);
 }
 
-const main = async () => {
-  
-  const api_root = 'http://localhost:8000';
-  const no_pokemon = JSON.stringify([
+const remember = (new_pokemon, tries) => {
+  // Prevent choices from being selected next time
+  localStorage.setItem("pokedoku-saved-tries", `${tries}`);
+  localStorage.setItem("pokedoku-saved-pokemon", JSON.stringify(
+    new_pokemon
+  ));
+}
+
+const has_saved_state = () => {
+  const found = [
+    'tries', 'pokemon', 'rows', 'cols'
+  ].map(k => {
+    return localStorage.getItem(`pokedoku-saved-${k}`);
+  });
+  const [tries, pokemon, rows, cols] = found;
+  const saved = found.every(x => x !== null);
+  console.log([
+    'tries', 'pokemon', 'rows', 'cols'
+  ])
+  return [saved, parseInt(tries || 0), pokemon, rows, cols];
+}
+
+const initialize = async (api_root, reset) => {
+
+  const saved = has_saved_state();
+  if (saved[0] && reset === false) {
+    const saved_state = saved.slice(1);
+    const [tries, pokemon, rows, cols] = saved_state;
+    return { tries, pokemon, rows, cols };
+  }
+  const pokemon = JSON.stringify([
     0,1,2,3,4,5,6,7,8
   ].map(() => {
     return null; 
   }));
 
-  const no_matches = JSON.stringify([]);
-
   const rand = await randomConditions(api_root);
-  const cols = [0,1,2].map(i => rand[i]);
-  const rows = [3,4,5].map(i => rand[i]);
+  const col_list = [0,1,2].map(i => rand[i]);
+  const row_list = [3,4,5].map(i => rand[i]);
+  const cols = JSON.stringify(col_list);
+  const rows = JSON.stringify(row_list);
 
   // Prevent choices from being selected next time
-  localStorage.setItem("pokedoku-banned", JSON.stringify(
-    rows.reduce((x,r) => {
-      return cols.reduce((y,c) => ([...y, [r,c]]), x);
+  localStorage.removeItem("pokedoku-saved-tries");
+  localStorage.removeItem("pokedoku-saved-pokemon");
+  localStorage.setItem("pokedoku-saved-rows", rows);
+  localStorage.setItem("pokedoku-saved-cols", cols);
+  localStorage.setItem("pokedoku-saved-conditions", JSON.stringify(
+    row_list.reduce((x,r) => {
+      return col_list.reduce((y,c) => ([...y, [r,c]]), x);
     }, [])
   ));
 
+  return { tries: 0, pokemon, rows, cols };
+}
+
+const main = async () => {
+  
+  const host = window.location.hostname;
+  const api_root = `http://${host}:8000`;
+  const no_matches = JSON.stringify([]);
+  const {
+    tries, rows, cols, pokemon
+  } = await initialize(api_root, false);
+
   const data = reactive({
     phaseMap,
-    tries: 0,
+    tries: tries,
     modal: null,
     content: '',
     cols, rows,
     phase: 0, err: 0,
     active_square: 0,
-    pokemon: no_pokemon,
+    pokemon: pokemon,
     matches: no_matches,
+    resetRevive: async () => {
+        const {
+          tries, rows, cols, pokemon
+        } = await initialize(api_root, true);
+        data.pokemon = pokemon;
+        data.tries = tries;
+        data.rows = rows;
+        data.cols = cols;
+    },
     closeModal: () => {
       data.modal = null;
     },
@@ -113,7 +165,7 @@ const main = async () => {
       const col = data.active_square % 3; 
       const row = Math.floor(data.active_square / 3);
       const conditions = [
-        data.cols[col], data.rows[row]
+        JSON.parse(data.cols)[col], JSON.parse(data.rows)[row]
       ];
       // Show failure status
       const pokemon = JSON.parse(data.pokemon);
@@ -128,10 +180,12 @@ const main = async () => {
       return await testGuess(data.api_root, id, conditions);
     },
     selectPokemon: (mons, new_mon) => {
-      return mons.map((mon, i) => {
+      const new_pokemon = mons.map((mon, i) => {
         if (i != data.active_square) return mon;
         return new_mon;
       });
+      remember(new_pokemon, data.tries);
+      return new_pokemon;
     },
     api_root: api_root,
     width: window.innerWidth,

@@ -34,6 +34,7 @@ const toNav = (data) => {
         const text = `${['← Back', data.tries+'/9'][+first()]}`;
         return toTag('div')`${data.err ? 'Sorry!' : text}`({
           data: data,
+          'class': 'button',
           '@click': () => {
             if (first()) return;
             // Three atempts at skipping phases
@@ -44,13 +45,22 @@ const toNav = (data) => {
           }
         });
       }
+      const github_root = 'https://raw.githubusercontent.com/PokeAPI/sprites/master'
+      const revive = toTag('div')`
+      <img src="${github_root}/sprites/items/max-revive.png">
+      </img><div>Reset</div>`({
+          class: 'revive button',
+          '@click': () => {
+            data.resetRevive();
+          }
+      });
       const header = () => {
         return toTag('div')`${d => d.text}`({
-          class: 'centered-content',
+          class: 'centered-content main-title',
           data: this.data
         });
       }
-      const nav = toTag('div')`${header}`({
+      const nav = toTag('div')`${revive}${header}`({
         class: 'nav centered grid-row1'
       });
       const buttons = toTag('div')`${back}`({

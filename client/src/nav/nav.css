@@ -9,13 +9,26 @@
 }
 .nav.grid-row1 {
   padding: var(--the-padding);
-  grid-template-columns: 1fr 2fr 1fr;
-  & > div {
-    font-size: 150%;
+  grid-template-columns: auto 1fr;
+  & > div.main-title {
     cursor: default;
-    box-shadow: none;
-    background-color: transparent;
+    font-size: 150%;
   }
+  & > div.revive.button {
+    display: grid;
+    align-items: center;
+    grid-template-columns: 32px 2.5em;
+  }
+}
+
+.button {
+  padding: var(--the-padding);
+  backdrop-filter: var(--the-blur);
+  border-radius: var(--the-border-radius);
+  background-color: var(--white-background);
+  text-shadow: var(--main-text-shadow);
+  box-shadow: var(--the-box-shadow);
+  color: var(--main-text-color);
 }
 
 .nav {
@@ -27,12 +40,5 @@
 
   & > div {
     text-align: center;
-    padding: var(--the-padding);
-    backdrop-filter: var(--the-blur);
-    border-radius: var(--the-border-radius);
-    background-color: var(--white-background);
-    text-shadow: var(--main-text-shadow);
-    box-shadow: var(--the-box-shadow);
-    color: var(--main-text-color);
   }
 }

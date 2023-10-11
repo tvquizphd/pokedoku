@@ -14,25 +14,27 @@ const toPokemonSprite = (no_mon, png_url) => {
   });
 }
 
-function* addHeaders (squares, cols, rows) {
+function* addHeaders (squares, data) {
   yield toTag('div')``({
     class: 'corner header'
   });
 
-  const mod = rows.length;
-  for (const col of cols) {
+  const mod = data.rows.length;
+  for (let c = 0; c < mod; c++) {
+      const to_c = () => data.cols[c];
       yield toTag('div')`
-      <div class="${() => col}">${() => col}</div>
+      <div class="${to_c}">${to_c}</div>
       `({
         class: 'column header'
       });
   }
-  for (const i in squares) {
-    const square = squares[i];
-    const row = rows[Math.floor(i / mod)];
-    if (i % mod == 0) {
+  for (let sq = 0; sq < mod*mod; sq++) {
+    const square = squares[sq];
+    const r = Math.floor(sq / mod);
+    const to_r = () => data.rows[r];
+    if (sq % mod == 0) {
       yield toTag('div')`
-      <div class="${() => row}">${() => row}</div>
+      <div class="${to_r}">${to_r}</div>
       `({
         class: 'row header'
       });
@@ -47,6 +49,8 @@ const toPokemonGrid = (data, globalCSS) => {
 
     static get setup() {
       return {
+	cols: JSON.parse(data.cols),
+	rows: JSON.parse(data.rows),
         pokemon: JSON.parse(data.pokemon)
       };
     }
@@ -88,8 +92,7 @@ const toPokemonGrid = (data, globalCSS) => {
         });
       });
 
-      const { cols, rows } = data;
-      const items = [...addHeaders(squares, cols, rows)];
+      const items = [...addHeaders(squares, this.data)];
 
       return toTag('div')`${items}`({
         'class': 'pokemon-grid centered'
@@ -101,12 +104,19 @@ const toPokemonGrid = (data, globalCSS) => {
     }
 
     attributeChangedCallback(name, _, v) {
-      super.attributeChangedCallback(name, _, JSON.parse(v));
+      let parsed = v;
+      try {
+        parsed = JSON.parse(v)
+      } catch {
+      }
+      super.attributeChangedCallback(name, _, parsed);
     }
   }
 
   return toTag('pokemon-grid', PokemonGrid)``({
     pokemon: () => data.pokemon,
+    rows: () => data.rows,
+    cols: () => data.cols,
     class: 'grid-row2'
   });
 }
