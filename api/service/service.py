@@ -214,7 +214,9 @@ class Service():
         # All conditions met within all types
         pkmn_types = pkmn.get('types', [])
         types = [t['type']['name'] for t in pkmn_types]
-        valid = types + [first_region]
+        valid = [
+            v for v in types + [first_region] if v
+        ]
         ok = all([fn(s,valid) for (s,fn) in fns])
         return { 'ok': ok }
 
