@@ -1,7 +1,6 @@
 from urllib.parse import urlparse
 import requests
 import logging
-import random
 import json
 import time
 
@@ -31,53 +30,47 @@ def id_from_url(url):
     split_url = urlparse(url).path.split('/')
     return int([s for s in split_url if s][-1])
 
-def from_dex(favored, other):
-    # Try matching dex numbers
-    if len(favored):
-        return (favored[0], favored[1:], other, False)
-    # Resort to random dex numbers
-    if len(other):
-        return (other[0], favored, other[1:], True)
-
-    return ['', [], [], True]
-
-def quality(n, count, offset):
+def quality(offset, n, count):
     is_first = offset == 0
-    priority = [1000, 100, 1]
-    values = [is_first, n, count]
-    ranking = zip(priority, values)
+    scales = [
+        [0, 0], [10*2**n, n]
+    ][+(n>0)]
+    values = [is_first, count]
+    ranking = zip(scales, values)
     return sum([p*v for p,v in ranking])
 
-# thresh based on tries and remaining
-def to_thresh(is_rand, at_start):
-    if at_start: return 2
-    if is_rand: return 2
-    return 3
+def to_ngrams(s,n):
+    for start in range(0, len(s) - n + 1):
+        yield s[start:start+n]
 
-def close_enough(
-    guess, is_rand, offset, n
-):
-    at_start = offset == 0
-    thresh = to_thresh( is_rand, at_start )
-    matched = n >= min(len(guess), thresh)
-    return (matched, thresh)
+def to_ngram_union(guess, target, n):
+    ngrams_guess = set(to_ngrams(guess, n))
+    ngrams_target = set(to_ngrams(target, n))
+    union = ngrams_guess & ngrams_target
+    offset = 0 if not len(union) else min(
+        target.index(un) for un in union
+    )
+    return (union, offset)
 
-def str_dist(guess, index, target):
-    def ngrams(s,n):
-        for start in range(0, len(s) - n + 1):
-            yield s[start:start+n]
+def fast_dist(guess, target):
 
-    found = (index, 0, 0, 0)
+    found = (0, 0, 0)
 
-    for n in [2,3,4,5,6]:
-        ngrams_guess = set(ngrams(guess, n))
-        ngrams_target = set(ngrams(target, n))
-        union = ngrams_guess & ngrams_target
+    for n in [1,2,3]:
+        (union, offset) = to_ngram_union(guess, target, n)
         if len(union) == 0: continue
-        offset = min(
-            target.index(chars) for chars in union
-        )
-        found = (index, n, len(union), offset)
+        found = (offset, n, len(union))
+
+    return found 
+
+def str_dist(guess, target):
+
+    found = (0, 0, 0)
+
+    for n in [1,2,3,4,5,6]:
+        (union, offset) = to_ngram_union(guess, target, n)
+        if len(union) == 0: continue
+        found = (offset, n, len(union))
 
     return found 
 
@@ -99,6 +92,8 @@ def format_pkmn(p):
     }
     return { 'pokemon': pokemon }
 
+def clamp(v, low, high):
+    return min(high, max(low, v))
 
 class RegionalDex():
 
@@ -118,6 +113,7 @@ Dex {self.dex_id}: {self.dex}'''
 class Service():
     def __init__(self, config):
         self.config = config
+        self.dex_dict = config.dex_dict
         self.gen_dict = config.gen_dict
         self.three_grams = config.three_grams
         self.two_grams = config.two_grams
@@ -230,82 +226,69 @@ class Service():
 
     def get_matches(self, raw_guess):
 
+        start_request = time.time()
         guess = raw_guess.lower()
 
-        if len(guess) < 2:
+        min_chars = 2
+        n_chars = len(guess)
+        bonus_chars = n_chars - min_chars
+        if bonus_chars < 0:
             return []
 
+        # Example trigrams: cha, mag, dra, iro
         two = self.two_grams.get(guess[:2], [])
         three = self.three_grams.get(guess[:3], [])
-        two_names = [self.config.dex_dict[k] for k in two]
-        three_names = [self.config.dex_dict[k] for k in three]
 
-        # Compare all pokemon of same first two letters
-        comparisons = {
-            v: str_dist(guess, k, v) for (k,v) in zip(two, two_names)
-        }
-        # Sort these pokemon by match quality
-        favored = [k for (k,v) in sorted(
-            comparisons.items(), reverse=True,
-            key=lambda kv: quality(*kv[1][1:])
-        )]
+        # Sort two-gram pokemon by match quality
+        favored = sorted(
+            two, reverse=True,
+            key=lambda k: quality(*str_dist(guess, self.dex_dict[k]))
+        )
         # List of all other pokemon
-        ndex = len(self.config.dex_dict)
-        other = list(set(range(1, ndex + 1)) - set(two))
-        random.shuffle(other)
-        print(len(favored), f'{guess} favored in')
+        ndex = len(self.dex_dict)
+        full_dex = set(range(1, ndex + 1))
+        etc = list(full_dex - set(two))
+        # Sort other pokemon less exactly
+        other = sorted(
+            etc, reverse=True,
+            key=lambda k: quality(*fast_dist(guess, self.dex_dict[k]))
+        )
 
         out = []
-        n_tried = 0
-        max_tries = max(1, min(4, len(guess)))
-        log_tracking = (0, 0)
+        ntri = len(three)
+        # Increase results by string length
+        defaults = (2, clamp(ntri, 2, 12))
+        (n_fetches, n_partial) = ({
+            0: (1, 2),
+            1: (1, 4),
+            2: (2, clamp(ntri, 1, 8)),
+        }).get(bonus_chars, defaults)
 
-        # Sample pokemon that meet threshhold
-        while n_tried < max_tries:
-            (dexn, favored, other, is_rand) = from_dex(favored, other)
+        root = self.config.api_url
+        # Fetch some favored pokemon
+        for _ in favored[:n_fetches]:
+            dexn = favored[0]
             # Search for pokemon if not tried
-            root = self.config.api_url
             pkmn = get_api(root, f'pokemon-species/{dexn}/', True)
-            if pkmn is None:
-                continue
-            n_tried += 1
-            # Measure similarity of pokemon names
-            compared = comparisons.get(pkmn['name'], None)
-            (n, count, offset) = compared[1:] if compared else (
-                str_dist(guess, dexn, pkmn['name'])[1:]
-            )
-            # Measure whether similar enough given conditions
-            (matched, thresh) = close_enough(
-                guess, is_rand, offset, n
-            )
-            # Logging
-            next_tracking = (thresh, is_rand)
-            if (next_tracking != log_tracking):
-                log_tracking = next_tracking
-                algo = 'random' if is_rand else 'top'
-                print(
-                    f'Seeking {thresh}-gram matches for {algo} pkmn'
-                )
-            if matched:
-                out.append((pkmn, n, count, offset))
+            if pkmn is None: continue
+            favored = favored[1:]
+            out.append(pkmn)
 
-        # Return all trigrams with less information
-        print(len([f for f in favored if f in three_names]), f'{guess} favored out')
-        for name in favored:
-            if name not in three: continue
-            (dexn, n, count, offset) = comparisons[name]
+        main_out = len(out)
+        print(f'Fully added {main_out} matches for {guess}')
+
+        # Pad out results with other matches
+        for dexn in (favored + other)[:n_partial]:
+            name = self.dex_dict[dexn]
             pkmn = { 'name': name, 'id': dexn }
-            # Assume close enough
-            out.append((pkmn, n, count, offset))
+            out.append(pkmn)
+        
+        print(f'Partially added {n_partial} others for {guess}')
 
-        # Sort by match quality 
-        out_pkmn = [
-            x[0] for x in sorted(
-                out, reverse=True, key=lambda x: quality(*x[1:])
-            )
-        ]
+        end_request = time.time()
+        print(end_request - start_request)
 
-        return [format_pkmn(p) for p in out_pkmn]
+        return [format_pkmn(p) for p in out]
 
 
 def to_service(config):

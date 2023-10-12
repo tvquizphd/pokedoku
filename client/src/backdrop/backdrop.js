@@ -17,14 +17,17 @@ const toBackdrop = (data) => {
       return toTag('canvas')``();
     }
 
-    draw() {
+    async draw() {
       if (this.gl === undefined) return;
       const canvas = this.shadowRoot.children[0];
-      window.setTimeout(() => {
+      const _time = await new Promise((resolve) => {
         updateUniforms(this.gl, this.uniforms, this.data);
         this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
-        this.draw();
-      }, 1000/5);
+        window.setTimeout(() => {
+          window.requestAnimationFrame(resolve);
+        }, 1000/5);
+      });
+      await this.draw();
     }
 
     connected() {

@@ -123,10 +123,6 @@ vec2 center_rectilinear(ivec2 shape, vec2 p) {
   return vec2(x, y);
 }
 
-float leaf_top(float x) {
-  return ((1. - 9.*x) * sin(2. - 9.*x) + 1.)/9.;
-}
-
 vec2 translate(vec2 p, float dx, float dy) {
   mat3 trans = mat3(
     1.0, 0.0, dx,
@@ -150,19 +146,14 @@ vec3 wave(vec2 c, float dt) {
   vec3 purple_background = vec3(220, 160, 220)/255.;
   // Reference the corners
   vec2 max = max_rectilinear(u_shape);
-  // Move and draw the leaf
+  // Move and draw
   float dx = -0.6*max.x/2.;
   float dy = -1.2*max.y/2.;
   vec2 o = translate(c, dx, dy);
   float ox = linear(vec2(-1./scale.x, 1./scale.x), o.x);
   float oy = linear(vec2(1./scale.y, -1./scale.y), o.y);
-  vec3 rain = lch_basic(wv + uv.y, wv + uv.y);
-  float top = leaf_top(ox);
-  if (top - oy > 0.05) {
-    vec3 leaf = lch_leaf(wv + uv.y, wv + uv.y, wv + uv.y);
-    return mix(leaf, purple_background, added_white - 0.1);
-  }
-  return mix(rain, purple_background, added_white);
+  vec3 leaf = lch_leaf(wv + uv.y, wv + uv.y, wv + uv.y);
+  return mix(leaf, purple_background, added_white - 0.1);
 }
 
 void main() {

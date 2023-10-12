@@ -3,7 +3,74 @@ import globalCSS from 'global-css' assert { type: 'css' };
 import { toTag, CustomTag } from 'tag';
 import { getForms } from 'api';
 
+class SearchQueue {
+
+  constructor() {
+    this.reset();
+    this._cache = {};
+    this.queue_reading();
+  }
+
+  reset () {
+    this.queue = [];
+  }
+
+  needs (purpose, key) {
+    const pending = this.pending(purpose);
+    const not_pending = !pending.includes(key);
+    const not_cached = !this.cached(purpose, key);
+    return not_pending && not_cached;
+  }
+
+  cache (purpose, key, value) {
+    const cache = this._cache[purpose] || new Map();
+    cache.set(key, value);
+    this._cache[purpose] = cache;
+  }
+
+  cached (purpose, key) {
+    const cache = this._cache[purpose] || new Map();
+    const found = cache.get(key);
+    if (found) return found;
+    return null; 
+  }
+
+  set latest (latest) {
+    this.queue.unshift(latest);
+  }
+
+  get latest () {
+    return this.queue.pop() || {
+      data: {},
+      purpose: null,
+      fn: () => null,
+    };
+  }
+
+  pending (purpose) {
+    return this.queue.filter((q) => {
+      return q.purpose === purpose;
+    }).map((q) => {
+      return q.data;
+    });
+  }
+
+  async queue_reading() {
+    const _time = await new Promise((resolve) => {
+      // Execute the command
+      this.latest.fn();
+      // Wait for next command
+      window.setTimeout(() => {
+        window.requestAnimationFrame(resolve);
+      }, 1000 / 5);
+    });
+    await this.queue_reading();
+  }
+}
+
 const toSearchModal = (data, actions) => {
+
+  const searchQueue = new SearchQueue();
 
   class SearchModal extends CustomTag {
 
@@ -11,27 +78,31 @@ const toSearchModal = (data, actions) => {
       return {
         pokemon: JSON.parse(data.pokemon),
         matches: JSON.parse(data.matches),
-        updating_forms: [],
-        updating_all: false,
+        updating_search: false,
         search: '',
       };
     }
 
     get mons() {
-      const max_mons = 20;
       return [...this.data.matches].reduce((forms, p) => {
-        if (p.forms.length == 0) {
-          this.fetchPokemonForms(p.dex);
+        if (searchQueue.needs('forms', p.dex)) {
+          // Queue fetch for this form
+          searchQueue.latest = {
+            data: { ...p },
+            purpose: 'forms',
+            fn: this.fetchPokemonForms.bind(this, p.dex)
+          };
           return forms;
         }
-        if (forms.length >= max_mons) {
-          return forms;
+        else if (p.forms.length == 0) {
+          // Use any cached forms if avilable
+          p.forms = searchQueue.cached('forms', p.dex) || [];
         }
         return [
           ...forms, ...p.forms.map((f) => {
-            return { 
-              name: f.name, id: f.id, key: f.id,
-              percentage: f.percentage
+            const { name, percentage, id } = f;
+            return {
+              name, percentage, id, key: id
             };
           })
         ];
@@ -80,20 +151,21 @@ const toSearchModal = (data, actions) => {
         value: () => this.data.search,
         placeholder: 'Search Pokémon...',
         '@input': (event) => {
+          // stop searching for old data
           this.data.search = event.target.value;
-          // Don't update if updating or updating_forms
-          const is_updating_forms = this.data.updating_forms.length > 0;
-          if (this.data.updating_all || is_updating_forms) {
+          // Don't update if already updating
+          if (this.data.updating_search) {
             return;
           }
-          this.data.updating_all = true;
+          searchQueue.reset();
+          this.data.updating_search = true;
           // Recursive update function
           const update_matches = () => {
             const guess = this.data.search;
             data.toMatches(guess).then((new_matches) => {
               data.matches = JSON.stringify(new_matches);
               const need_refresh = this.data.search != guess;
-              this.data.updating_all = need_refresh;
+              this.data.updating_search = need_refresh;
               if (need_refresh) {
                 update_matches();
               }
@@ -136,22 +208,17 @@ const toSearchModal = (data, actions) => {
     }
 
     async fetchPokemonForms(dexn) {
-      const { updating_forms } = this.data;
-      if (updating_forms.includes(dexn)) {
-        return;
+      if (searchQueue.needs('forms', dexn)) {
+        // Request all regional forms for the pokemon
+        const forms = await getForms(data.api_root, dexn);
+        searchQueue.cache('forms', dexn, forms);
+        this.data.matches = this.data.matches.map((p) => {
+          if (p.dex == dexn) {
+            p.forms = forms;
+          }
+          return p;
+        });
       }
-      this.data.updating_forms = [...updating_forms, dexn];
-      // Request all regional forms for the pokemon
-      const dexn_forms = await getForms(data.api_root, dexn);
-      this.data.matches = this.data.matches.map((p) => {
-        if (p.dex == dexn) {
-          p.forms = dexn_forms;
-        }
-        return p;
-      });
-      this.data.updating_forms = this.data.updating_forms.filter((d) => {
-        return d != dexn;
-      });
     }
 
     attributeChangedCallback(name, _, v) {

@@ -81,9 +81,6 @@ const has_saved_state = () => {
   });
   const [tries, pokemon, rows, cols] = found;
   const saved = found.every(x => x !== null);
-  console.log([
-    'tries', 'pokemon', 'rows', 'cols'
-  ])
   return [saved, parseInt(tries || 0), pokemon, rows, cols];
 }
 
